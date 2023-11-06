@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: frank
+    runs-on: self-hosted
 
 
     steps:
