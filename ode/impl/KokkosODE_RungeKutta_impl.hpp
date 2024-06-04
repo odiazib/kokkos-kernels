@@ -104,7 +104,7 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
 
   // Set current time and initial time step
   scalar_type t_now = t_start;
-  scalar_type dt    = (t_end - t_start) / params.max_steps;
+  scalar_type dt    = (t_end - t_start) / params.num_steps;
 
   // Loop over time steps to integrate ODE
   for (int stepIdx = 0; (stepIdx < params.max_steps) && (t_now <= t_end);
@@ -125,7 +125,7 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
     // Take tentative steps until the requested error
     // is met. This of course only works for adaptive
     // solvers, for fix time steps we simply do not
-    // compute and check what error of the current step
+    // compute and check the error of the current step
     while (error_threshold < error) {
       // Take a step of Runge-Kutta integrator
       RKStep(ode, table, adapt, t_now, dt, y0, y, temp, k_vecs);
@@ -136,19 +136,18 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
       if (adapt) {
         // Compute the error
         for (int eqIdx = 0; eqIdx < ode.neqs; ++eqIdx) {
-          error = Kokkos::max(error, Kokkos::abs(temp(eqIdx)));
-          tol   = Kokkos::max(
-              tol, params.abs_tol +
-                       params.rel_tol * Kokkos::max(Kokkos::abs(y(eqIdx)),
-                                                    Kokkos::abs(y0(eqIdx))));
+          tol = params.abs_tol +
+                params.rel_tol *
+                    Kokkos::max(Kokkos::abs(y(eqIdx)), Kokkos::abs(y0(eqIdx)));
+          error = Kokkos::max(error, Kokkos::abs(temp(eqIdx)) / tol);
         }
-        error = error / tol;
 
         // Reduce the time step if error
         // is too large and current step
         // is rejected.
         if (error > 1) {
-          dt = dt * Kokkos::max(0.2, 0.8 / Kokkos::pow(error, 1 / table.order));
+          dt = dt *
+               Kokkos::max(0.2, 0.8 * Kokkos::pow(error, 1.0 / table.order));
           dt_was_reduced = true;
         }
 
@@ -169,7 +168,7 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
         dt = dt *
              Kokkos::min(
                  10.0,
-                 Kokkos::max(2.0, 0.9 * Kokkos::pow(error, 1 / table.order)));
+                 Kokkos::max(2.0, 0.9 * Kokkos::pow(error, 1.0 / table.order)));
       }
     } else {
       return Experimental::ode_solver_status::SUCCESS;
