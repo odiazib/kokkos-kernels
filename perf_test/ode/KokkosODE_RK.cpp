@@ -136,9 +136,10 @@ struct RKSolve_wrapper {
                                         Kokkos::pair(2 * idx, 2 * idx + 1));
 
     // Run Runge-Kutta time integrator
-    KokkosODE::Impl::RKSolve<ode_type, table_type, vec_type, mv_type, double>(
+    // This should be replaced by a call to the public interface!
+    KokkosODE::Impl::RKSolve<ode_type, table_type, vec_type, mv_type, double, false>(
         my_ode, table, params, tstart, tend, local_y_old, local_y_new,
-        local_tmp, local_kstack);
+        local_tmp, local_kstack, -1);
   }
 };
 

@@ -23,6 +23,8 @@
 #include "KokkosODE_RungeKuttaTables_impl.hpp"
 #include "KokkosODE_Types.hpp"
 
+#include "iostream"
+
 namespace KokkosODE {
 namespace Impl {
 
@@ -78,18 +80,24 @@ KOKKOS_FUNCTION void RKStep(ode_type& ode, const table_type& table,
 }  // RKStep
 
 template <class ode_type, class table_type, class vec_type, class mv_type,
-          class scalar_type>
+          class scalar_type, bool record_count>
 KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
     const ode_type& ode, const table_type& table,
     const KokkosODE::Experimental::ODE_params& params,
     const scalar_type t_start, const scalar_type t_end, const vec_type& y0,
-    const vec_type& y, const vec_type& temp, const mv_type& k_vecs) {
+    const vec_type& y, const vec_type& temp, const mv_type& k_vecs, int count) {
   constexpr scalar_type error_threshold = 1;
   scalar_type error_n;
   bool adapt = params.adaptivity;
   bool dt_was_reduced;
   if (std::is_same_v<table_type, ButcherTableau<0, 0>>) {
     adapt = false;
+  }
+
+  if constexpr (record_count) {
+    count = 0;
+  } else {
+    count = -1;
   }
 
   // Set current time and initial time step
@@ -144,7 +152,7 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
         if (error > 1) {
           dt =
               dt * Kokkos::max(
-                       0.2, 0.8 * Kokkos::pow(error, -1.0 / (table.order + 1)));
+                       0.2, 0.8 * Kokkos::pow(error, -1.0 / table.order));
           dt_was_reduced = true;
         }
 
@@ -155,6 +163,10 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
 
     // Update time and initial condition for next time step
     t_now += dt;
+    if constexpr(record_count) {
+      count += 1;
+      std::cout << "current count: " << count << std::endl;
+    }
     for (int eqIdx = 0; eqIdx < ode.neqs; ++eqIdx) {
       y0(eqIdx) = y(eqIdx);
     }
@@ -166,7 +178,7 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
              Kokkos::min(
                  10.0,
                  Kokkos::max(
-                     2.0, 0.9 * Kokkos::pow(error, -1.0 / (table.order + 1))));
+                     2.0, 0.9 * Kokkos::pow(error, -1.0 / table.order)));
       }
     } else {
       return Experimental::ode_solver_status::SUCCESS;

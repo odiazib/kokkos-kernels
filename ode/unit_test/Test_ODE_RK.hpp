@@ -21,7 +21,7 @@
 
 namespace Test {
 
-// damped harmonic undriven oscillator
+// damped undriven harmonic oscillator
 // m y'' + c y' + k y = 0
 // solution: y=A * exp(-xi * omega_0 * t) * sin(sqrt(1-xi^2) * omega_0 * t +
 // phi) omega_0 = sqrt(k/m); xi = c / sqrt(4*m*k) A and phi depend on y(0) and
@@ -85,7 +85,8 @@ struct solution_wrapper {
 };
 
 template <class ode_type, KokkosODE::Experimental::RK_type rk_type,
-          class vec_type, class mv_type, class scalar_type>
+          class vec_type, class mv_type, class scalar_type,
+	  bool record_count = false>
 struct RKSolve_wrapper {
   using ode_params = KokkosODE::Experimental::ODE_params;
 
@@ -95,6 +96,7 @@ struct RKSolve_wrapper {
   int max_steps;
   vec_type y_old, y_new, tmp;
   mv_type kstack;
+  int count;
 
   RKSolve_wrapper(const ode_type& my_ode_, const ode_params& params_,
                   const scalar_type tstart_, const scalar_type tend_,
@@ -107,12 +109,14 @@ struct RKSolve_wrapper {
         y_old(y_old_),
         y_new(y_new_),
         tmp(tmp_),
-        kstack(kstack_) {}
+        kstack(kstack_),
+	count(0) {}
 
   KOKKOS_FUNCTION
   void operator()(const int /*idx*/) const {
-    KokkosODE::Experimental::RungeKutta<rk_type>::Solve(
-        my_ode, params, tstart, tend, y_old, y_new, tmp, kstack);
+    std::cout << "counting step? " << record_count << std::endl;
+    KokkosODE::Experimental::RungeKutta<rk_type, record_count>::Solve(
+        my_ode, params, tstart, tend, y_old, y_new, tmp, kstack, count);
   }
 };
 

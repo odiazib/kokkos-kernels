@@ -90,7 +90,7 @@ struct RK_Tableau_helper<RK_type::RKDP> {
 ///
 /// \tparam RK_type an RK_type enum value used to specify
 ///         which Runge Kutta method is to be used.
-template <RK_type T>
+template <RK_type T, bool record_count = false>
 struct RungeKutta {
   using table_type = typename RK_Tableau_helper<T>::table_type;
 
@@ -129,10 +129,12 @@ struct RungeKutta {
   KOKKOS_FUNCTION static ode_solver_status Solve(
       const ode_type& ode, const KokkosODE::Experimental::ODE_params& params,
       const scalar_type t_start, const scalar_type t_end, const vec_type& y0,
-      const vec_type& y, const vec_type& temp, const mv_type& k_vecs) {
+      const vec_type& y, const vec_type& temp, const mv_type& k_vecs, int count = -1) {
     table_type table;
-    return KokkosODE::Impl::RKSolve(ode, table, params, t_start, t_end, y0, y,
-                                    temp, k_vecs);
+    return KokkosODE::Impl::RKSolve<ode_type, table_type, vec_type, mv_type,
+				    scalar_type, record_count>(ode, table, params,
+							       t_start, t_end, y0, y,
+							       temp, k_vecs, count);
   }
 };
 
