@@ -28,6 +28,7 @@ void test_RK_count() {
   using RK_type         = KokkosODE::Experimental::RK_type;
   using vec_type        = Kokkos::View<double*, Device>;
   using mv_type         = Kokkos::View<double**, Device>;
+  using count_type      = Kokkos::View<int*, execution_space>;
 
   TestProblem::DegreeOnePoly myODE{};
   constexpr int neqs = myODE.neqs;
@@ -39,6 +40,7 @@ void test_RK_count() {
   // double dt               = (tend - tstart) / num_steps;
   vec_type y("solution", neqs), f("function", neqs);
   vec_type y_new("y new", neqs), y_old("y old", neqs);
+  count_type count("time step count", 1);
 
   auto y_h = Kokkos::create_mirror(y);
   y_h(0)   = myODE.expected_val(tstart, 0);
@@ -67,16 +69,16 @@ void test_RK_count() {
                                              minStepSize);
   Kokkos::deep_copy(y_old, y_old_h);
   Kokkos::deep_copy(y_new, y_old_h);
-  RKSolve_wrapper<TestProblem::DegreeOnePoly, RK_type::RKF45, vec_type, mv_type, double, true>
+  RKSolve_wrapper<TestProblem::DegreeOnePoly, RK_type::RKF45, vec_type, mv_type, double, count_type>
       solve_wrapper(myODE, params, tstart, tend, y_old, y_new, tmp,
-                    kstack);
+                    kstack, count);
   Kokkos::parallel_for(my_policy, solve_wrapper);
 
   auto y_new_h = Kokkos::create_mirror(y_new);
   Kokkos::deep_copy(y_new_h, y_new);
 
   std::cout << "y_ref=" << y_ref_h(0) << ", y_new=" << y_new_h(0) << std::endl;
-  std::cout << "time steps taken: " << solve_wrapper.count << std::endl;
+  std::cout << "time steps taken: " << count(0) << std::endl;
 
 }  // test_RK_count
 

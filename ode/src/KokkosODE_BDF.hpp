@@ -118,7 +118,7 @@ struct BDF {
     KokkosODE::Experimental::ODE_params params(table.order - 1);
     for (int stepIdx = 0; stepIdx < init_steps; ++stepIdx) {
       KokkosODE::Experimental::RungeKutta<RK_type::RKF45>::Solve(
-          ode, params, t, t + dt, y0, y, update, kstack);
+          ode, params, t, t + dt, y0, y, update, kstack, nullptr);
 
       for (int eqIdx = 0; eqIdx < ode.neqs; ++eqIdx) {
         y_vecs(eqIdx, stepIdx + 1) = y(eqIdx);

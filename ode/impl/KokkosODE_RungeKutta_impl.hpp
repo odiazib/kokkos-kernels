@@ -80,12 +80,12 @@ KOKKOS_FUNCTION void RKStep(ode_type& ode, const table_type& table,
 }  // RKStep
 
 template <class ode_type, class table_type, class vec_type, class mv_type,
-          class scalar_type, bool record_count>
+          class scalar_type>
 KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
     const ode_type& ode, const table_type& table,
     const KokkosODE::Experimental::ODE_params& params,
     const scalar_type t_start, const scalar_type t_end, const vec_type& y0,
-    const vec_type& y, const vec_type& temp, const mv_type& k_vecs, int count) {
+    const vec_type& y, const vec_type& temp, const mv_type& k_vecs, int* const count) {
   constexpr scalar_type error_threshold = 1;
   scalar_type error_n;
   bool adapt = params.adaptivity;
@@ -93,12 +93,7 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
   if (std::is_same_v<table_type, ButcherTableau<0, 0>>) {
     adapt = false;
   }
-
-  if constexpr (record_count) {
-    count = 0;
-  } else {
-    count = -1;
-  }
+  *count = 0;
 
   // Set current time and initial time step
   scalar_type t_now = t_start;
@@ -163,10 +158,7 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
 
     // Update time and initial condition for next time step
     t_now += dt;
-    if constexpr(record_count) {
-      count += 1;
-      std::cout << "current count: " << count << std::endl;
-    }
+    *count += 1;
     for (int eqIdx = 0; eqIdx < ode.neqs; ++eqIdx) {
       y0(eqIdx) = y(eqIdx);
     }

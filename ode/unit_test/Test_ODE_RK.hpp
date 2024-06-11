@@ -86,7 +86,7 @@ struct solution_wrapper {
 
 template <class ode_type, KokkosODE::Experimental::RK_type rk_type,
           class vec_type, class mv_type, class scalar_type,
-	  bool record_count = false>
+	  class count_type>
 struct RKSolve_wrapper {
   using ode_params = KokkosODE::Experimental::ODE_params;
 
@@ -96,12 +96,13 @@ struct RKSolve_wrapper {
   int max_steps;
   vec_type y_old, y_new, tmp;
   mv_type kstack;
-  int count;
+  count_type count;
 
   RKSolve_wrapper(const ode_type& my_ode_, const ode_params& params_,
                   const scalar_type tstart_, const scalar_type tend_,
                   const vec_type& y_old_, const vec_type& y_new_,
-                  const vec_type& tmp_, const mv_type& kstack_)
+                  const vec_type& tmp_, const mv_type& kstack_,
+		  const count_type& count_)
       : my_ode(my_ode_),
         params(params_),
         tstart(tstart_),
@@ -110,13 +111,12 @@ struct RKSolve_wrapper {
         y_new(y_new_),
         tmp(tmp_),
         kstack(kstack_),
-	count(0) {}
+	count(count_) {}
 
   KOKKOS_FUNCTION
   void operator()(const int /*idx*/) const {
-    std::cout << "counting step? " << record_count << std::endl;
-    KokkosODE::Experimental::RungeKutta<rk_type, record_count>::Solve(
-        my_ode, params, tstart, tend, y_old, y_new, tmp, kstack, count);
+    KokkosODE::Experimental::RungeKutta<rk_type>::Solve(
+        my_ode, params, tstart, tend, y_old, y_new, tmp, kstack, count.data());
   }
 };
 
@@ -131,14 +131,16 @@ void test_method(const std::string label, ode_type& my_ode,
                  typename vec_type::HostMirror y_ref_h) {
   using execution_space = typename vec_type::execution_space;
   using solver_type     = KokkosODE::Experimental::RungeKutta<rk_type>;
+  using count_type      = Kokkos::View<int*, execution_space>;
 
   KokkosODE::Experimental::ODE_params params(num_steps);
   vec_type tmp("tmp vector", my_ode.neqs);
   mv_type kstack("k stack", solver_type::num_stages(), my_ode.neqs);
+  count_type count("time step count", 1);
 
   Kokkos::RangePolicy<execution_space> my_policy(0, 1);
-  RKSolve_wrapper<ode_type, rk_type, vec_type, mv_type, scalar_type>
-      solve_wrapper(my_ode, params, tstart, tend, y_old, y_new, tmp, kstack);
+  RKSolve_wrapper<ode_type, rk_type, vec_type, mv_type, scalar_type, count_type>
+    solve_wrapper(my_ode, params, tstart, tend, y_old, y_new, tmp, kstack, count);
   Kokkos::parallel_for(my_policy, solve_wrapper);
 
   auto y_new_h = Kokkos::create_mirror_view(y_new);
@@ -325,7 +327,9 @@ void test_rate(ode_type& my_ode, const scalar_type& tstart,
                typename vec_type::HostMirror& error) {
   using execution_space = typename vec_type::execution_space;
   using solver_type     = KokkosODE::Experimental::RungeKutta<rk_type>;
+  using count_type      = Kokkos::View<int*, execution_space>;
 
+  count_type count("time step count", 1);
   vec_type tmp("tmp vector", my_ode.neqs);
   mv_type kstack("k stack", solver_type::num_stages(), my_ode.neqs);
 
@@ -338,8 +342,8 @@ void test_rate(ode_type& my_ode, const scalar_type& tstart,
     KokkosODE::Experimental::ODE_params params(num_steps(idx));
     Kokkos::deep_copy(y_old, y_old_h);
     Kokkos::deep_copy(y_new, y_old_h);
-    RKSolve_wrapper<ode_type, rk_type, vec_type, mv_type, scalar_type>
-        solve_wrapper(my_ode, params, tstart, tend, y_old, y_new, tmp, kstack);
+    RKSolve_wrapper<ode_type, rk_type, vec_type, mv_type, scalar_type, count_type>
+      solve_wrapper(my_ode, params, tstart, tend, y_old, y_new, tmp, kstack, count);
     Kokkos::parallel_for(my_policy, solve_wrapper);
 
     Kokkos::deep_copy(y_new_h, y_new);
@@ -475,9 +479,11 @@ void test_adaptivity() {
   using RK_type         = KokkosODE::Experimental::RK_type;
   using vec_type        = Kokkos::View<double*, Device>;
   using mv_type         = Kokkos::View<double**, Device>;
+  using count_type      = Kokkos::View<int*, execution_space>;
 
   duho my_oscillator(1, 1, 4);
   const int neqs = my_oscillator.neqs;
+  count_type count("time step count", 1);
 
   vec_type y("solution", neqs), f("function", neqs);
   auto y_h = Kokkos::create_mirror(y);
@@ -526,9 +532,9 @@ void test_adaptivity() {
                                              minStepSize);
   Kokkos::deep_copy(y_old, y_old_h);
   Kokkos::deep_copy(y_new, y_old_h);
-  RKSolve_wrapper<duho, RK_type::RKF45, vec_type, mv_type, double>
+  RKSolve_wrapper<duho, RK_type::RKF45, vec_type, mv_type, double, count_type>
       solve_wrapper(my_oscillator, params, tstart, tend, y_old, y_new, tmp,
-                    kstack);
+                    kstack, count);
   Kokkos::parallel_for(my_policy, solve_wrapper);
 
   auto y_new_h = Kokkos::create_mirror(y_new);
