@@ -77,8 +77,10 @@ void test_RK_count() {
   auto y_new_h = Kokkos::create_mirror(y_new);
   Kokkos::deep_copy(y_new_h, y_new);
 
+  typename count_type::HostMirror count_h = Kokkos::create_mirror_view(count);
+  Kokkos::deep_copy(count_h, count);
   std::cout << "y_ref=" << y_ref_h(0) << ", y_new=" << y_new_h(0) << std::endl;
-  std::cout << "time steps taken: " << count(0) << std::endl;
+  std::cout << "time steps taken: " << count_h(0) << std::endl;
 
 }  // test_RK_count
 
