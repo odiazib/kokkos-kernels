@@ -124,7 +124,7 @@ struct RKSolve_wrapper {
         y_new(y_new_),
         tmp(tmp_),
         kstack(kstack_),
-	count(count_) {}
+        count(count_) {}
 
   KOKKOS_FUNCTION
   void operator()(const int idx) const {
@@ -136,13 +136,13 @@ struct RKSolve_wrapper {
     auto local_tmp = Kokkos::subview(tmp, Kokkos::pair(2 * idx, 2 * idx + 1));
     auto local_kstack = Kokkos::subview(kstack, Kokkos::ALL(),
                                         Kokkos::pair(2 * idx, 2 * idx + 1));
-    auto local_count = Kokkos::subview(count, idx, Kokkos::ALL());
+    auto local_count  = Kokkos::subview(count, idx, Kokkos::ALL());
 
     // Run Runge-Kutta time integrator
     // This should be replaced by a call to the public interface!
-    KokkosODE::Impl::RKSolve(
-        my_ode, table, params, tstart, tend, local_y_old, local_y_new,
-        local_tmp, local_kstack, local_count.data());
+    KokkosODE::Impl::RKSolve(my_ode, table, params, tstart, tend, local_y_old,
+                             local_y_new, local_tmp, local_kstack,
+                             local_count.data());
   }
 };
 

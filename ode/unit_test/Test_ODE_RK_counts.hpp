@@ -56,7 +56,7 @@ void test_RK_count() {
   // First compute analytical solution as reference
   // and to evaluate the error from each RK method.
   auto y_ref_h = Kokkos::create_mirror(y);
-  y_ref_h(0) = myODE.expected_val(tend, 0);
+  y_ref_h(0)   = myODE.expected_val(tend, 0);
 
   vec_type tmp("tmp vector", neqs);
   mv_type kstack(
@@ -65,13 +65,14 @@ void test_RK_count() {
 
   constexpr double minStepSize = (tend - tstart) / maxSteps;
   Kokkos::RangePolicy<execution_space> my_policy(0, 1);
-  KokkosODE::Experimental::ODE_params params(num_steps, maxSteps, absTol, relTol,
-                                             minStepSize);
+  KokkosODE::Experimental::ODE_params params(num_steps, maxSteps, absTol,
+                                             relTol, minStepSize);
   Kokkos::deep_copy(y_old, y_old_h);
   Kokkos::deep_copy(y_new, y_old_h);
-  RKSolve_wrapper<TestProblem::DegreeOnePoly, RK_type::RKF45, vec_type, mv_type, double, count_type>
-      solve_wrapper(myODE, params, tstart, tend, y_old, y_new, tmp,
-                    kstack, count);
+  RKSolve_wrapper<TestProblem::DegreeOnePoly, RK_type::RKF45, vec_type, mv_type,
+                  double, count_type>
+      solve_wrapper(myODE, params, tstart, tend, y_old, y_new, tmp, kstack,
+                    count);
   Kokkos::parallel_for(my_policy, solve_wrapper);
 
   auto y_new_h = Kokkos::create_mirror(y_new);

@@ -103,7 +103,7 @@ struct BDF {
 
     const double dt = (t_end - t_start) / num_steps;
     double t        = t_start;
-    int count = 0;
+    int count       = 0;
 
     // Load y0 into y_vecs(:, 0)
     for (int eqIdx = 0; eqIdx < ode.neqs; ++eqIdx) {

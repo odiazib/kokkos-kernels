@@ -85,8 +85,7 @@ struct solution_wrapper {
 };
 
 template <class ode_type, KokkosODE::Experimental::RK_type rk_type,
-          class vec_type, class mv_type, class scalar_type,
-	  class count_type>
+          class vec_type, class mv_type, class scalar_type, class count_type>
 struct RKSolve_wrapper {
   using ode_params = KokkosODE::Experimental::ODE_params;
 
@@ -102,7 +101,7 @@ struct RKSolve_wrapper {
                   const scalar_type tstart_, const scalar_type tend_,
                   const vec_type& y_old_, const vec_type& y_new_,
                   const vec_type& tmp_, const mv_type& kstack_,
-		  const count_type& count_)
+                  const count_type& count_)
       : my_ode(my_ode_),
         params(params_),
         tstart(tstart_),
@@ -111,7 +110,7 @@ struct RKSolve_wrapper {
         y_new(y_new_),
         tmp(tmp_),
         kstack(kstack_),
-	count(count_) {}
+        count(count_) {}
 
   KOKKOS_FUNCTION
   void operator()(const int /*idx*/) const {
@@ -140,7 +139,8 @@ void test_method(const std::string label, ode_type& my_ode,
 
   Kokkos::RangePolicy<execution_space> my_policy(0, 1);
   RKSolve_wrapper<ode_type, rk_type, vec_type, mv_type, scalar_type, count_type>
-    solve_wrapper(my_ode, params, tstart, tend, y_old, y_new, tmp, kstack, count);
+      solve_wrapper(my_ode, params, tstart, tend, y_old, y_new, tmp, kstack,
+                    count);
   Kokkos::parallel_for(my_policy, solve_wrapper);
 
   auto y_new_h = Kokkos::create_mirror_view(y_new);
@@ -342,8 +342,10 @@ void test_rate(ode_type& my_ode, const scalar_type& tstart,
     KokkosODE::Experimental::ODE_params params(num_steps(idx));
     Kokkos::deep_copy(y_old, y_old_h);
     Kokkos::deep_copy(y_new, y_old_h);
-    RKSolve_wrapper<ode_type, rk_type, vec_type, mv_type, scalar_type, count_type>
-      solve_wrapper(my_ode, params, tstart, tend, y_old, y_new, tmp, kstack, count);
+    RKSolve_wrapper<ode_type, rk_type, vec_type, mv_type, scalar_type,
+                    count_type>
+        solve_wrapper(my_ode, params, tstart, tend, y_old, y_new, tmp, kstack,
+                      count);
     Kokkos::parallel_for(my_policy, solve_wrapper);
 
     Kokkos::deep_copy(y_new_h, y_new);

@@ -85,7 +85,8 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
     const ode_type& ode, const table_type& table,
     const KokkosODE::Experimental::ODE_params& params,
     const scalar_type t_start, const scalar_type t_end, const vec_type& y0,
-    const vec_type& y, const vec_type& temp, const mv_type& k_vecs, int* const count) {
+    const vec_type& y, const vec_type& temp, const mv_type& k_vecs,
+    int* const count) {
   constexpr scalar_type error_threshold = 1;
   scalar_type error_n;
   bool adapt = params.adaptivity;
@@ -145,9 +146,8 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
         // is too large and current step
         // is rejected.
         if (error > 1) {
-          dt =
-              dt * Kokkos::max(
-                       0.2, 0.8 * Kokkos::pow(error, -1.0 / table.order));
+          dt = dt *
+               Kokkos::max(0.2, 0.8 * Kokkos::pow(error, -1.0 / table.order));
           dt_was_reduced = true;
         }
 
@@ -168,9 +168,8 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
         // Compute new time increment
         dt = dt *
              Kokkos::min(
-                 10.0,
-                 Kokkos::max(
-                     2.0, 0.9 * Kokkos::pow(error, -1.0 / table.order)));
+                 10.0, Kokkos::max(
+                           2.0, 0.9 * Kokkos::pow(error, -1.0 / table.order)));
       }
     } else {
       return Experimental::ode_solver_status::SUCCESS;
