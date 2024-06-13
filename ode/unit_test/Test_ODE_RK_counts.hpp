@@ -22,19 +22,18 @@
 
 namespace Test {
 
-template <class Device>
-void test_RK_count() {
+template <class Device, class Poly>
+void RK_Polynomial(const Device, const Poly myODE, const double relTol,
+		   const double absTol) {
   using execution_space = typename Device::execution_space;
   using RK_type         = KokkosODE::Experimental::RK_type;
   using vec_type        = Kokkos::View<double*, Device>;
   using mv_type         = Kokkos::View<double**, Device>;
   using count_type      = Kokkos::View<int*, execution_space>;
 
-  TestProblem::DegreeOnePoly myODE{};
   constexpr int neqs = myODE.neqs;
 
   constexpr double tstart = 0.0, tend = 1.0;
-  constexpr double absTol = 1e-12, relTol = 1e-6;
   constexpr int num_steps = 10;
   constexpr int maxSteps  = 1e6;
   // double dt               = (tend - tstart) / num_steps;
@@ -69,7 +68,7 @@ void test_RK_count() {
                                              relTol, minStepSize);
   Kokkos::deep_copy(y_old, y_old_h);
   Kokkos::deep_copy(y_new, y_old_h);
-  RKSolve_wrapper<TestProblem::DegreeOnePoly, RK_type::RKF45, vec_type, mv_type,
+  RKSolve_wrapper<Poly, RK_type::RKF45, vec_type, mv_type,
                   double, count_type>
       solve_wrapper(myODE, params, tstart, tend, y_old, y_new, tmp, kstack,
                     count);
@@ -83,11 +82,21 @@ void test_RK_count() {
   std::cout << "y_ref=" << y_ref_h(0) << ", y_new=" << y_new_h(0) << std::endl;
   std::cout << "time steps taken: " << count_h(0) << std::endl;
 
-}  // test_RK_count
+}  // RK_Polynomial
 
 }  // namespace Test
 
-void test_RK_count() { Test::test_RK_count<TestDevice>(); }
+void test_RK_count() {
+  Test::RK_Polynomial(TestDevice(), TestProblem::DegreeOnePoly(), 1.0e-6, 1e-12);
+  Test::RK_Polynomial(TestDevice(), TestProblem::DegreeTwoPoly(), 1.0e-6, 1e-12);
+  Test::RK_Polynomial(TestDevice(), TestProblem::DegreeThreePoly(), 1.0e-6, 1e-12);
+  Test::RK_Polynomial(TestDevice(), TestProblem::DegreeFivePoly(), 1.0e-6, 1e-12);
+  Test::RK_Polynomial(TestDevice(), TestProblem::Exponential(0.7), 1.0e-6, 1e-12);
+  Test::RK_Polynomial(TestDevice(), TestProblem::SpringMassDamper(1001., 1000.), 1e-4, 0.0);
+  Test::RK_Polynomial(TestDevice(), TestProblem::CosExp(-10., 2., 1.), 5.3e-5, 0.0);
+  Test::RK_Polynomial(TestDevice(), TestProblem::StiffChemicalDecayProcess(1e4, 1.), 4e-9, 1.8e-10);
+  Test::RK_Polynomial(TestDevice(), TestProblem::Tracer(10.0), 0.0, 1e-3);
+}
 
 #if defined(KOKKOSKERNELS_INST_DOUBLE)
 TEST_F(TestCategory, RKCount) { test_RK_count(); }
