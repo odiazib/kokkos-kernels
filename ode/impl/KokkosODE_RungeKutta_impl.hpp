@@ -39,7 +39,7 @@ KOKKOS_FUNCTION void RKStep(ode_type& ode, const table_type& table,
                             const vec_type& y_old, const vec_type& y_new,
                             const vec_type& temp, const mv_type& k_vecs) {
   const int neqs    = ode.neqs;
-  const int nstages = table.nstages;
+  constexpr int nstages = table_type::nstages;
 
   // first set y_new = y_old
   for (int eqIdx = 0; eqIdx < ode.neqs; ++eqIdx) {
@@ -86,19 +86,19 @@ KOKKOS_FUNCTION Experimental::ode_solver_status RKSolve(
     const KokkosODE::Experimental::ODE_params& params,
     const scalar_type t_start, const scalar_type t_end, const vec_type& y0,
     const vec_type& y, const vec_type& temp, const mv_type& k_vecs,
-    int* const count) {
+    int* const step_count) {
   constexpr scalar_type error_threshold = 1;
   scalar_type error_n;
   bool adapt = params.adaptivity;
   bool dt_was_reduced;
-  if (std::is_same_v<table_type, ButcherTableau<0, 0>>) {
+  if constexpr (std::is_same_v<table_type, ButcherTableau<0, 0>>) {
     adapt = false;
   }
-  *count = 0;
 
   // Set current time and initial time step
   scalar_type t_now = t_start;
   scalar_type dt    = (t_end - t_start) / params.num_steps;
+  *step_count = 0;
 
   // Loop over time steps to integrate ODE
   for (int stepIdx = 0; (stepIdx < params.max_steps) && (t_now <= t_end);
