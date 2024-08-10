@@ -177,9 +177,10 @@ KOKKOS_FUNCTION void BDFSolve(const ode_type& ode, const scalar_type t_start,
   using KAT = Kokkos::ArithTraits<scalar_type>;
 
   // This needs to go away and be pulled out of temp instead...
-  auto rhs    = Kokkos::subview(temp, Kokkos::ALL(), 0);
-  auto update = Kokkos::subview(temp, Kokkos::ALL(), 1);
-  // vec_type rhs("rhs", ode.neqs), update("update", ode.neqs);
+  // auto rhs    = Kokkos::subview(temp, Kokkos::ALL(), 0);
+  // auto update = Kokkos::subview(temp, Kokkos::ALL(), 1);
+  //FIXME: Ask for help on how to handle the runtime error: View assignment must have compatible layouts.
+  vec_type rhs("rhs", ode.neqs), update("update", ode.neqs);
   (void)max_step;
 
   int order = 1, num_equal_steps = 0;
